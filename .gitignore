@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+junk.js
+npm-debug.log
+settings.json

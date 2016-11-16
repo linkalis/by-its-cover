@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>By Its Cover</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.1/leaflet.css" />
+  <link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css">
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+  <div class="container">
+
+    <div class="page-header">
+      <h1>By Its Cover <small>Webpage context parser powered by IBM Watson</small></h1>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 col-md-offset-3">
+        <!-- <label for="url-text-box">URL to parse</label> -->
+        <div class="input-group">
+          <span class="input-group-addon">http://</span>
+          <input type="text" class="form-control" id="urlToParse" aria-describedby="url-text-box">
+          <span class="input-group-btn">
+            <button id="analyzeBtn" class="btn">Call Watson!</button>
+          <span>
+        </div>
+        <hr>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-3 concepts-container">
+        <h2>Main concepts</h2>
+        <div id="concepts"></div>
+      </div>
+
+      <div class="col-md-6 map-container">
+        <h2>Map</h2>
+        <div id="map"></div>
+      </div>
+
+      <div class="col-md-3 entities-container">
+        <h2>Entities</h2>
+        <div id="entities"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div id="sourceText"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.16.6/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.1/leaflet.js"></script>
+
+  <!--
+    <script type="text/javascript" src="bundle.js" charset="utf-8"></script>
+  -->
+
+  <script>
+
+    // Set up Leaflet map
+    var map = L.map('map').setView([0, 0], 1);
+    var openStreetMap = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {minZoom: 1, maxZoom: 12, attribution: 'Map data (C) <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'});
+
+    openStreetMap.addTo(map);
+
+    // Initialize layerGroup to hold geoentities
+    var locationsLayerGroup = new L.layerGroup();
+
+    /////////////////
+    // SOURCE TEXT //
+    /////////////////
+    function showSourceText(text) {
+      // Clear any existing text
+      $("#sourceText").html("");
+
+      displayText = "<h2>Page text</h2><p>" + text + "</p>";
+      $(displayText).appendTo("#sourceText");
+    }
+
+    //////////////
+    // CONCEPTS //
+    //////////////
+    function showConcepts(concepts) {
+      // Clear any existing concepts
+      $("#concepts").html("");
+
+      for (var i = 0; i < concepts.length; i++) {
+        var conceptDescription = "<div class='panel panel-default concept-panel'><div class='panel-body'>" +
+                                "<h3>" + concepts[i].text + "</h3>" +
+                                "<p>Relevance: " + concepts[i].relevance + "</p>" +
+                                "<a href='" + concepts[i].dbpedia + "' target='_blank'>View on dbpedia</a>" +
+                                "</div></div>";
+
+        $(conceptDescription).appendTo("#concepts");
+      }
+    }
+
+
+    //////////////////
+    // ALL ENTITIES //
+    //////////////////
+
+    // Process entities
+    function processEntities(entities) {
+      // Clear any existing entities
+      $("#entities").html("");
+
+      for (var i = 0; i < entities.length; i++) {
+        var subType = "";
+        var website = "";
+        var type = "";
+        var sentiment = "";
+      }
+
+    }
+
+    // Show all entities in sidebar
+    function showEntity(entity) {
+
+      for (var i = 0; i < entities.length; i++) {
+        console.log(entities[i].disambiguated);
+
+        var subTypeDetails = "";
+        var websiteDetails = "";
+        var geoButton = "";
+        var typeIcon = "";
+        var sentimentIcon = "";
+
+        if (typeof entities[i].disambiguated != 'undefined') {
+
+          // If there's subtype information, add it to additional details
+          if (typeof entities[i].disambiguated.subType != 'undefined') {
+            subTypeDetails += "<ul>";
+            for (var j = 0; j < entities[i].disambiguated.subType.length; j++) {
+              subTypeDetails += "<li>" + entities[i].disambiguated.subType[j] + "</li>";
+            }
+            subTypeDetails += "</ul>";
+          }
+
+
+          // If there's a website, add it to additional details
+          if (typeof entities[i].disambiguated.website != 'undefined') {
+            websiteDetails += "<a href='" + entities[i].disambiguated.website + "' target='_blank'>View website</a>";
+          }
+
+          //geoButton = "<div class='zoomBtn btn btn-info pull-right' data-lat='" + loc[0] + "' data-long='" + loc[1] + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
+
+        }
+
+        switch (entities[i].type){
+          case "Country":
+            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+            break;
+          case "City":
+            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+            break;
+          case "StateOrCounty":
+            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+            break;
+          case "GeographicFeature":
+            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+            break;
+          case "Continent":
+            typeIcon = "<i class='fa fa-map fa-3x pull-right'></i>";
+            break;
+          case "Company":
+            typeIcon = "<i class='fa fa-industry fa-3x pull-right'></i>";
+            break;
+          case "Person":
+            typeIcon = "<i class='fa fa-male fa-3x pull-right'></i>";
+            break;
+          case "JobTitle":
+            typeIcon = "<i class='fa fa-address-card fa-3x pull-right'></i>";
+            break;
+          case "FieldTerminology":
+            typeIcon = "<i class='fa fa-quote-right fa-3x pull-right'></i>";
+            break;
+          case "Organization":
+            typeIcon = "<i class='fa fa-university fa-3x pull-right'></i>";
+            break;
+          case "Facility":
+            typeIcon = "<i class='fa fa-building fa-3x pull-right'></i>";
+            break;
+          case "Quantity":
+            typeIcon = "<i class='fa fa-calculator fa-3x pull-right'></i>";
+            break;
+        }
+
+        switch (entities[i].sentiment.type){
+          case "positive":
+            sentimentIcon = "<i class='fa fa-thumbs-up fa-2x pull-right'></i>";
+            break;
+          case "negative":
+            sentimentIcon = "<i class='fa fa-thumbs-down fa-2x pull-right'></i>";
+            break;
+          case "neutral":
+            break;
+        }
+
+        var entityDescription = "<div class='panel panel-default entity-panel'><div class='panel-body'>" +
+                                typeIcon +
+                                "<h3>" + entities[i].text + "</h3>" +
+                                "<p>" + entities[i].type + "</p>" +
+                                "<p>Relevance: " + entities[i].relevance + "</p>" +
+                                "<p>Sentiment: " + entities[i].sentiment.type + "</p>" +
+                                subTypeDetails +
+                                websiteDetails +
+                                sentimentIcon +
+                                "</div></div>";
+
+        $(entityDescription).appendTo("#entities");
+      }
+    }
+
+
+    /////////////
+    // GEODATA //
+    /////////////
+
+    // Parse geoinfo, initialize layer group, geocode where necessary
+    function processGeodata(geoEntities) {
+      // Clear any existing markers/layers
+      locationsLayerGroup.clearLayers();
+
+      //console.log("Geocoding " + geoEntities.length + " items!");
+
+      for (var i = 0; i < geoEntities.length; i++) {
+        var locName = geoEntities[i].text;
+        console.log("Geocoding: " + locName);
+        var locDetails;
+
+        if (typeof geoEntities[i].disambiguated != 'undefined') {
+          if (typeof geoEntities[i].disambiguated.subType != 'undefined') {
+            locDetails = geoEntities[i].disambiguated.subType;
+            console.log(locDetails);
+          }
+
+          // If geo info exists in Watson data, use that to create a marker
+          if (typeof geoEntities[i].disambiguated.geo != 'undefined') {
+            var loc = geoEntities[i].disambiguated.geo.split(" ");
+            createMarker(locName, null, loc[0], loc[1], geoEntities[i].relevance, locDetails);
+          } else {
+            geoCode(locName, geoEntities[i].relevance);
+          }
+        } else {
+          geoCode(locName, geoEntities[i].relevance);
+        }
+      }
+
+      locationsLayerGroup.addTo(map); // add layerGroup to map
+    }
+
+    // Geocode using Open Street Map call
+    function geoCode(locName, relevance){
+      $.ajax({
+        context: $(this),
+        url: "/geocode_location/" + locName,
+        dataType: 'json',
+        crossDomain: true,
+        success: function(data) {
+          locDetails = [data.class, data.type];
+          createMarker(locName, data.display_name, data.lat, data.lon, relevance, locDetails);
+        }
+      });
+    }
+
+
+    function createMarker(locName, displayName, lat, lon, relevance, locDetails) {
+      var popup = "<h3>" + locName + "</h3>";
+
+      if (displayName != null) {
+        popup += "<p>" + displayName + "</p>";
+      }
+
+      popup += "<p>Relevance: " + relevance + "</p>";
+
+      if (locDetails != null) {
+        var displayDetails = "<ul>";
+        for (var j = 0; j < locDetails.length; j++) {
+          displayDetails += "<li>" + locDetails[j] + "</li>";
+        }
+        displayDetails += "</ul>";
+        popup += displayDetails;
+      }
+
+      var minOpacity = 0.5;
+
+      //var marker = L.marker([lat, lon]).bindPopup(popup);
+      var marker = L.circle([lat, lon], {
+          color: false,
+          fillColor: '#ff0000',
+          fillOpacity: ((1 - minOpacity) * relevance) + minOpacity,
+          radius: 400000 * relevance
+      }).bindPopup(popup);
+
+      locationsLayerGroup.addLayer(marker);
+    }
+
+
+    $('#analyzeBtn').on('click', function() {
+      // Replace button text with loading indicator
+      $('#analyzeBtn').html("Loading <i class='fa fa-circle-o-notch fa-spin fa-fw'></i>");
+
+      // Get URL that the user has input
+      var urlInput = $('#urlToParse').val();
+      console.log("Analyzing URL: " + urlInput);
+
+      // jQuery AJAX version
+      $.ajax({
+        url: "/call_watson/?urlInput=" + urlInput,
+        context: document.body,
+        dataType: 'json',
+        crossDomain: true,
+        success: function(data){
+          // Set button text back to original
+          $('#analyzeBtn').html("Call Watson!");
+
+          //var parsed = $.parseJSON(data);
+          var parsed = data;
+
+          var sourceText = parsed.text;
+          showSourceText(sourceText);
+
+          var allConcepts = parsed.concepts;
+          var mainConcepts = _.filter(allConcepts, function(o) { return o.relevance > 0.5 });
+          console.log(mainConcepts);
+          showConcepts(mainConcepts);
+
+          var allEntities = parsed.entities;
+          processEntities(allEntities);
+          //showEntities(allEntities);
+
+          /*
+          var geoEntities = _.filter(allEntities, function(o) {
+            var geoExists = false;
+
+            if (o.disambiguated) {
+              if (o.disambiguated.geo) {
+                geoExists = true;
+              }
+            };
+
+            return o.type == "GeographicFeature" || o.type == "City" || o.type == "Country" || o.type == "StateOrCounty" || geoExists;
+          });
+
+          processGeodata(geoEntities);
+          */
+        }
+      });
+    });
+
+  </script>
+</body>
+
+</html>

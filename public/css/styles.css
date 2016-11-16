@@ -1,0 +1,33 @@
+#map {
+  height: 500px;
+}
+
+.map-container {
+
+}
+
+#concepts {
+ height: 500px;
+ overflow-y: scroll;
+}
+
+.concepts-container {
+  background-color: #DDE681;
+}
+
+.concept-panel {
+  background-color: #EBEBEB;
+}
+
+#entities {
+  height: 500px;
+  overflow-y: scroll;
+}
+
+.entities-container {
+  background-color: #87D5EB;
+}
+
+.entity-panel {
+  background-color: #EBEBEB;
+}
