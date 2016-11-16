@@ -74,6 +74,7 @@
 
     // Initialize layerGroup to hold geoentities
     var locationsLayerGroup = new L.layerGroup();
+    locationsLayerGroup.addTo(map); // add layerGroup to map
 
     /////////////////
     // SOURCE TEXT //
@@ -114,150 +115,141 @@
       // Clear any existing entities
       $("#entities").html("");
 
-      for (var i = 0; i < entities.length; i++) {
-        var subType = "";
-        var website = "";
-        var type = "";
-        var sentiment = "";
-      }
+      // Clear any existing map markers/layers
+      locationsLayerGroup.clearLayers();
 
+      for (var i = 0; i < entities.length; i++) {
+        var name = entities[i].text;
+        var type = entities[i].type;
+        var relevance = entities[i].relevance;
+        var sentiment = entities[i].sentiment.type;
+        var subType = undefined;
+        var website = undefined;
+        var loc = undefined;
+
+        if (typeof entities[i].disambiguated != 'undefined') {
+          var subType = entities[i].disambiguated.subType;
+          var website = entities[i].disambiguated.website;
+          if (typeof entities[i].disambiguated.geo != 'undefined'){
+            var loc = entities[i].disambiguated.geo.split(" ");
+          }
+        }
+
+        // Show entities in list and on map, where applicable
+        // If loc is available from Watson data, use that info to visualize
+        console.log("Location data: " + loc);
+        if (loc != undefined) {
+          showEntity(name, type, relevance, sentiment, subType, website, loc[0], loc[1]);
+          createMarker(name, null, loc[0], loc[1], relevance, null);
+        } else if (entities[i].type == "GeographicFeature" || entities[i].type == "City" || entities[i].type == "Country" || entities[i].type == "StateOrCounty") {
+          // If loc data isn't available, but it's a geoentity, then geocode
+          geoCode(name, function(geocoded){
+            console.log("Successfully geocoded: " + geocoded.lat + ", " + geocoded.lon);
+            showEntity(name, type, relevance, sentiment, subType, website, geocoded.lat, geocoded.lon);
+          });
+        } else {
+          showEntity(name, type, relevance, sentiment, subType, website, null, null);
+        }
+
+      }
     }
 
     // Show all entities in sidebar
-    function showEntity(entity) {
+    function showEntity(name, type, relevance, sentiment, subType, website, lat, lon) {
 
-      for (var i = 0; i < entities.length; i++) {
-        console.log(entities[i].disambiguated);
+      var subTypeDetails = "";
+      var websiteDetails = "";
+      var geoButton = "";
+      var typeIcon = "";
+      var sentimentIcon = "";
 
-        var subTypeDetails = "";
-        var websiteDetails = "";
-        var geoButton = "";
-        var typeIcon = "";
-        var sentimentIcon = "";
-
-        if (typeof entities[i].disambiguated != 'undefined') {
-
-          // If there's subtype information, add it to additional details
-          if (typeof entities[i].disambiguated.subType != 'undefined') {
-            subTypeDetails += "<ul>";
-            for (var j = 0; j < entities[i].disambiguated.subType.length; j++) {
-              subTypeDetails += "<li>" + entities[i].disambiguated.subType[j] + "</li>";
-            }
-            subTypeDetails += "</ul>";
-          }
-
-
-          // If there's a website, add it to additional details
-          if (typeof entities[i].disambiguated.website != 'undefined') {
-            websiteDetails += "<a href='" + entities[i].disambiguated.website + "' target='_blank'>View website</a>";
-          }
-
-          //geoButton = "<div class='zoomBtn btn btn-info pull-right' data-lat='" + loc[0] + "' data-long='" + loc[1] + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
-
+      // If there's subtype information, add it to additional details
+      if (subType != undefined) {
+        subTypeDetails += "<ul>";
+        for (var j = 0; j < subType.length; j++) {
+          subTypeDetails += "<li>" + subType[j] + "</li>";
         }
-
-        switch (entities[i].type){
-          case "Country":
-            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
-            break;
-          case "City":
-            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
-            break;
-          case "StateOrCounty":
-            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
-            break;
-          case "GeographicFeature":
-            typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
-            break;
-          case "Continent":
-            typeIcon = "<i class='fa fa-map fa-3x pull-right'></i>";
-            break;
-          case "Company":
-            typeIcon = "<i class='fa fa-industry fa-3x pull-right'></i>";
-            break;
-          case "Person":
-            typeIcon = "<i class='fa fa-male fa-3x pull-right'></i>";
-            break;
-          case "JobTitle":
-            typeIcon = "<i class='fa fa-address-card fa-3x pull-right'></i>";
-            break;
-          case "FieldTerminology":
-            typeIcon = "<i class='fa fa-quote-right fa-3x pull-right'></i>";
-            break;
-          case "Organization":
-            typeIcon = "<i class='fa fa-university fa-3x pull-right'></i>";
-            break;
-          case "Facility":
-            typeIcon = "<i class='fa fa-building fa-3x pull-right'></i>";
-            break;
-          case "Quantity":
-            typeIcon = "<i class='fa fa-calculator fa-3x pull-right'></i>";
-            break;
-        }
-
-        switch (entities[i].sentiment.type){
-          case "positive":
-            sentimentIcon = "<i class='fa fa-thumbs-up fa-2x pull-right'></i>";
-            break;
-          case "negative":
-            sentimentIcon = "<i class='fa fa-thumbs-down fa-2x pull-right'></i>";
-            break;
-          case "neutral":
-            break;
-        }
-
-        var entityDescription = "<div class='panel panel-default entity-panel'><div class='panel-body'>" +
-                                typeIcon +
-                                "<h3>" + entities[i].text + "</h3>" +
-                                "<p>" + entities[i].type + "</p>" +
-                                "<p>Relevance: " + entities[i].relevance + "</p>" +
-                                "<p>Sentiment: " + entities[i].sentiment.type + "</p>" +
-                                subTypeDetails +
-                                websiteDetails +
-                                sentimentIcon +
-                                "</div></div>";
-
-        $(entityDescription).appendTo("#entities");
+        subTypeDetails += "</ul>";
       }
+
+      // If there's a website, add it to additional details
+      if (website != "") {
+        websiteDetails += "<a href='" + website + "' target='_blank'>View website</a>";
+      }
+
+      if (lat != null) {
+        geoButton = "<div class='zoomBtn btn btn-info pull-right' data-lat='" + lat + "' data-long='" + lon + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
+      }
+
+      switch (type){
+        case "Country":
+          typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+          break;
+        case "City":
+          typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+          break;
+        case "StateOrCounty":
+          typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+          break;
+        case "GeographicFeature":
+          typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
+          break;
+        case "Continent":
+          typeIcon = "<i class='fa fa-map fa-3x pull-right'></i>";
+          break;
+        case "Company":
+          typeIcon = "<i class='fa fa-industry fa-3x pull-right'></i>";
+          break;
+        case "Person":
+          typeIcon = "<i class='fa fa-male fa-3x pull-right'></i>";
+          break;
+        case "JobTitle":
+          typeIcon = "<i class='fa fa-address-card fa-3x pull-right'></i>";
+          break;
+        case "FieldTerminology":
+          typeIcon = "<i class='fa fa-quote-right fa-3x pull-right'></i>";
+          break;
+        case "Organization":
+          typeIcon = "<i class='fa fa-university fa-3x pull-right'></i>";
+          break;
+        case "Facility":
+          typeIcon = "<i class='fa fa-building fa-3x pull-right'></i>";
+          break;
+        case "Quantity":
+          typeIcon = "<i class='fa fa-calculator fa-3x pull-right'></i>";
+          break;
+      }
+
+      switch (sentiment){
+        case "positive":
+          sentimentIcon = "<i class='fa fa-thumbs-up fa-2x pull-right'></i>";
+          break;
+        case "negative":
+          sentimentIcon = "<i class='fa fa-thumbs-down fa-2x pull-right'></i>";
+          break;
+        case "neutral":
+          break;
+      }
+
+      var entityDescription = "<div class='panel panel-default entity-panel'><div class='panel-body'>" +
+                              typeIcon +
+                              "<h3>" + name + "</h3>" +
+                              "<p>" + type + "</p>" +
+                              "<p>Relevance: " + relevance + "</p>" +
+                              "<p>Sentiment: " + sentiment + "</p>" +
+                              subTypeDetails +
+                              websiteDetails +
+                              geoButton +
+                              sentimentIcon +
+                              "</div></div>";
+
+      $(entityDescription).appendTo("#entities");
     }
 
 
-    /////////////
-    // GEODATA //
-    /////////////
-
-    // Parse geoinfo, initialize layer group, geocode where necessary
-    function processGeodata(geoEntities) {
-      // Clear any existing markers/layers
-      locationsLayerGroup.clearLayers();
-
-      //console.log("Geocoding " + geoEntities.length + " items!");
-
-      for (var i = 0; i < geoEntities.length; i++) {
-        var locName = geoEntities[i].text;
-        console.log("Geocoding: " + locName);
-        var locDetails;
-
-        if (typeof geoEntities[i].disambiguated != 'undefined') {
-          if (typeof geoEntities[i].disambiguated.subType != 'undefined') {
-            locDetails = geoEntities[i].disambiguated.subType;
-            console.log(locDetails);
-          }
-
-          // If geo info exists in Watson data, use that to create a marker
-          if (typeof geoEntities[i].disambiguated.geo != 'undefined') {
-            var loc = geoEntities[i].disambiguated.geo.split(" ");
-            createMarker(locName, null, loc[0], loc[1], geoEntities[i].relevance, locDetails);
-          } else {
-            geoCode(locName, geoEntities[i].relevance);
-          }
-        } else {
-          geoCode(locName, geoEntities[i].relevance);
-        }
-      }
-
-      locationsLayerGroup.addTo(map); // add layerGroup to map
-    }
+    ///////////////////////
+    // GEODATA FUNCTIONS //
+    ///////////////////////
 
     // Geocode using Open Street Map call
     function geoCode(locName, relevance){
@@ -267,8 +259,14 @@
         dataType: 'json',
         crossDomain: true,
         success: function(data) {
-          locDetails = [data.class, data.type];
-          createMarker(locName, data.display_name, data.lat, data.lon, relevance, locDetails);
+          return {
+            displayName: data.display_name,
+            class: data.class,
+            type: data.type,
+            lat: data.lat,
+            lon: data.lon,
+            boundingBox: data.boundingbox
+          };
         }
       });
     }
@@ -305,6 +303,21 @@
       locationsLayerGroup.addLayer(marker);
     }
 
+    $('body').on('click', 'div.zoomBtn', function() {
+      // parse lat and long from the button's data attributes
+      var lat = $(this).data().lat;
+      var long = $(this).data().long;
+      var zoom = 7;
+
+      console.log("Zooming map to: " + lat + ", " + long);
+
+      // set the view
+      map.setView([lat, long], zoom);
+    });
+
+    /////////////
+    // ANALYZE //
+    /////////////
 
     $('#analyzeBtn').on('click', function() {
       // Replace button text with loading indicator
@@ -332,7 +345,7 @@
 
           var allConcepts = parsed.concepts;
           var mainConcepts = _.filter(allConcepts, function(o) { return o.relevance > 0.5 });
-          console.log(mainConcepts);
+          //console.log(mainConcepts);
           showConcepts(mainConcepts);
 
           var allEntities = parsed.entities;
