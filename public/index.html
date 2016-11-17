@@ -110,7 +110,6 @@
     // ALL ENTITIES //
     //////////////////
 
-    // Process entities
     function processEntities(entities) {
       // Clear any existing entities
       $("#entities").html("");
@@ -119,6 +118,7 @@
       locationsLayerGroup.clearLayers();
 
       for (var i = 0; i < entities.length; i++) {
+        console.log(entities[i]);
         var name = entities[i].text;
         var type = entities[i].type;
         var relevance = entities[i].relevance;
@@ -137,16 +137,29 @@
 
         // Show entities in list and on map, where applicable
         // If loc is available from Watson data, use that info to visualize
-        console.log("Location data: " + loc);
         if (loc != undefined) {
           showEntity(name, type, relevance, sentiment, subType, website, loc[0], loc[1]);
-          createMarker(name, null, loc[0], loc[1], relevance, null);
-        } else if (entities[i].type == "GeographicFeature" || entities[i].type == "City" || entities[i].type == "Country" || entities[i].type == "StateOrCounty") {
+          createMarker(name, null, loc[0], loc[1], relevance, subType);
+        } else if (type == "GeographicFeature" || type == "City" || type == "Country" || type == "StateOrCounty") {
           // If loc data isn't available, but it's a geoentity, then geocode
-          geoCode(name, function(geocoded){
-            console.log("Successfully geocoded: " + geocoded.lat + ", " + geocoded.lon);
+          console.log("This outside callback function: ");
+          console.log(this);
+          console.log("Name outside callback function: " + name);
+
+          function processGeocoded(geocoded) {
+            var self = this;
+            console.log("Name inside callback function: " + name);
+            console.log("Text inside callback function with self is: " + self.name);
+            // Code that depends on 'result'
+            console.log("Successfully geocoded: " + name + "(" + geocoded.displayName + ") ; " + geocoded.lat + ", " + geocoded.lon);
             showEntity(name, type, relevance, sentiment, subType, website, geocoded.lat, geocoded.lon);
-          });
+            createMarker(name, geocoded.displayName, geocoded.lat, geocoded.lon, relevance, subType);
+          }
+
+          // Call geoCode function, passing in callback function from above
+          // http://stackoverflow.com/questions/14220321/how-do-i-return-the-response-from-an-asynchronous-call
+          geoCode(name, processGeocoded);
+
         } else {
           showEntity(name, type, relevance, sentiment, subType, website, null, null);
         }
@@ -178,7 +191,7 @@
       }
 
       if (lat != null) {
-        geoButton = "<div class='zoomBtn btn btn-info pull-right' data-lat='" + lat + "' data-long='" + lon + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
+        geoButton = "<div class='zoomBtn btn btn-info' data-lat='" + lat + "' data-long='" + lon + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
       }
 
       switch (type){
@@ -252,14 +265,14 @@
     ///////////////////////
 
     // Geocode using Open Street Map call
-    function geoCode(locName, relevance){
+    function geoCode(locName, callback){
       $.ajax({
-        context: $(this),
+        //context: i,
         url: "/geocode_location/" + locName,
         dataType: 'json',
         crossDomain: true,
         success: function(data) {
-          return {
+          var response = {
             displayName: data.display_name,
             class: data.class,
             type: data.type,
@@ -267,6 +280,8 @@
             lon: data.lon,
             boundingBox: data.boundingbox
           };
+
+          callback(response);
         }
       });
     }
@@ -345,28 +360,10 @@
 
           var allConcepts = parsed.concepts;
           var mainConcepts = _.filter(allConcepts, function(o) { return o.relevance > 0.5 });
-          //console.log(mainConcepts);
           showConcepts(mainConcepts);
 
           var allEntities = parsed.entities;
           processEntities(allEntities);
-          //showEntities(allEntities);
-
-          /*
-          var geoEntities = _.filter(allEntities, function(o) {
-            var geoExists = false;
-
-            if (o.disambiguated) {
-              if (o.disambiguated.geo) {
-                geoExists = true;
-              }
-            };
-
-            return o.type == "GeographicFeature" || o.type == "City" || o.type == "Country" || o.type == "StateOrCounty" || geoExists;
-          });
-
-          processGeodata(geoEntities);
-          */
         }
       });
     });
