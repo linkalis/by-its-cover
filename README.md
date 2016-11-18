@@ -37,3 +37,7 @@ Next, you need to install some node packages and then launch the app from your t
 5. Next, run the command `npm start` to launch the express web server.  This will kick off the server.js back-end processes to manage Watson and OSM Nominatim API calls, and will serve up the client-side assets from the public/ folder of the project.
 
 6. In a browser, navigate to http://localhost:3000 to find your version of the app running locally.
+
+## Demo
+
+Live demo app available at: http://by-its-cover.us-east-1.elasticbeanstalk.com
