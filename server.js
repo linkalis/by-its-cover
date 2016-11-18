@@ -3,7 +3,6 @@ var request = require('request');
 var watson = require('watson-developer-cloud');
 
 var settings = require('./settings.json');
-//var sampleData = require('./sample_alchemy_response.json');
 
 var alchemy_language = watson.alchemy_language({
   api_key: settings.alchemy_language_api
@@ -36,7 +35,7 @@ app.get("/call_watson", function(req, res) {
 });
 
 
-// Geocode location with OSM Nominatim
+// Geocode location with Open Street Map Nominatim, then pass back to view
 app.get("/geocode_location/:loc", function(req, res) {
   var nominatim_url = "http://nominatim.openstreetmap.org/search?format=json&q=" + req.params.loc;
 
@@ -56,6 +55,7 @@ app.get("/geocode_location/:loc", function(req, res) {
 });
 
 
+// Launch app
 app.listen(3000, function(){
   console.log("App listening on port 3000!");
 });

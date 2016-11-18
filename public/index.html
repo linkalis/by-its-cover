@@ -19,16 +19,50 @@
 
     <div class="row">
       <div class="col-md-6 col-md-offset-3">
-        <!-- <label for="url-text-box">URL to parse</label> -->
         <div class="input-group">
           <span class="input-group-addon">URL :</span>
-          <input type="text" class="form-control" id="urlToParse" aria-describedby="url-text-box">
+          <input type="text" class="form-control" id="urlToParse" aria-label="type or paste URL here">
           <span class="input-group-btn">
-            <button id="analyzeBtn" class="btn">Call Watson!</button>
+            <button id="analyzeBtn" class="btn"><i class='fa fa-phone'></i> Call Watson!</button>
           <span>
         </div>
         <hr>
       </div>
+      <div class="col-md-1 col-md-offset-2">
+        <i id="help" class='fa fa-question-circle fa-3x pull-right' aria-label="Help" data-toggle="modal" data-target="#helpModal"></i>
+      </div>
+
+      <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="helpModalLabel">By Its Cover | Help!</h4>
+            </div>
+            <div class="modal-body">
+              <h4>What is this?</h4>
+              <p>This is a prototype web app that demonstrates the power of IBM Watson's Alchemy Language API to parse text from websites and extract relevant contextual information.  The goal is to showcase some of the analytic powers of Watson and offer a fun way to engage with news articles and other webpages by providing the reader with at-your-fingertips textual and geographic context.</p>
+
+              <h4>How do I use this?</h4>
+              <p>To get started, simply type or paste a link to a webpage into the box at the top of the page, then click: <div class="btn btn-default"><i class='fa fa-phone'></i> Call Watson!</div><p>
+              <p>The app will then make a request to the Watson service to pull all of the text from the webpage you requested, analyze it, and return some relevant background information.</p>
+
+              <h4>How do I interpret the results?</h4>
+              <p>This app returns two main types of information:</p>
+              <ul>
+                <li><strong>concepts: </strong>("Main ideas" panel) these are the contextual and higher-level concepts that Watson has identified as relevant to the webpage you requested</li>
+                <li><strong>entities: </strong>("Who? What? Where?" panel) these are all of the "proper nouns" that were mentioned in the webpage you requested, along with information on how many times they appeared and whether they were mentioned in a positive/negative context (<strong>sentiment</strong>)</li>
+              </ul>
+              <p>Both of these types of information also include <strong>relevance scores</strong> on a scale of 0 (least relevant) to 1 (most relevant).  These relevance scores are also used to scale the map markers, so that more relevant locations show up with larger markers and less relevant locations have smaller markers.</p>
+              <p>And finally, at the very bottom of the page, you will find a copy of the text that Watson has parsed from the webpage you requested and used for analysis.  This text is now ready for you to read, clean and ad-free!</p>
+
+              <h4>Where can I learn more?</h4>
+              <p>Check out this app on <a href="https://github.com/linkalis/by-its-cover" target="_blank">GitHub</a>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div class="row">
@@ -54,6 +88,7 @@
     </div>
   </div>
 
+  <!-- Load jQuery, Bootstrap, lodash, Leaflet via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.16.6/lodash.min.js"></script>
@@ -72,9 +107,11 @@
     var locationsLayerGroup = new L.layerGroup();
     locationsLayerGroup.addTo(map); // add layerGroup to map
 
+
     /////////////////
     // SOURCE TEXT //
     /////////////////
+
     function showSourceText(text) {
       // Clear any existing text
       $("#sourceText").html("");
@@ -83,9 +120,11 @@
       $(displayText).appendTo("#sourceText");
     }
 
+
     //////////////
     // CONCEPTS //
     //////////////
+
     function showConcepts(concepts) {
       // Clear any existing concepts
       $("#concepts").html("");
@@ -159,9 +198,9 @@
       }
     }
 
-    // Show all entities in sidebar
-    function showEntity(name, type, count, relevance, sentiment, subType, website, lat, lon) {
 
+    // showEntity function to show entities in the sidebar
+    function showEntity(name, type, count, relevance, sentiment, subType, website, lat, lon) {
       var subTypeDetails = "";
       var websiteDetails = "";
       var geoButton = "";
@@ -182,10 +221,12 @@
         websiteDetails += "<a href='" + website + "' target='_blank'>View website</a>";
       }
 
+      // If there's a geolocation, add a Zoom button the user can click on the zoom to the entity
       if (lat != null) {
         geoButton = "<div class='zoomBtn btn btn-info' data-lat='" + lat + "' data-long='" + lon + "' data-geotype='" + type + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
       }
 
+      // Add an icon to indicate the entity's type
       switch (type){
         case "Country":
           typeIcon = "<i class='fa fa-map-marker fa-3x pull-right'></i>";
@@ -225,6 +266,7 @@
           break;
       }
 
+      // Add an icon to indicate positive or negative sentiment
       switch (sentiment){
         case "positive":
           sentimentIcon = "<i class='fa fa-thumbs-up fa-2x pull-right'></i>";
@@ -236,6 +278,7 @@
           break;
       }
 
+      // Pull all info together and format it into a panel for display
       var entityDescription = "<div class='panel panel-default entity-panel'><div class='panel-body'>" +
                               typeIcon +
                               "<h3>" + name + "</h3>" +
@@ -249,6 +292,7 @@
                               "<p>" + geoButton + "</p>" +
                               "</div></div>";
 
+      // Append the panel to the entities div
       $(entityDescription).appendTo("#entities");
     }
 
@@ -257,10 +301,10 @@
     // GEODATA FUNCTIONS //
     ///////////////////////
 
-    // Geocode using Open Street Map call
+    // Geocode with Open Street Map's Nominatim service
+    // This hits endpoint defined in server.js that will execute the call to Nominatim
     function geoCode(locName, callback){
       $.ajax({
-        //context: i,
         url: "/geocode_location/" + locName,
         dataType: 'json',
         crossDomain: true,
@@ -280,6 +324,7 @@
     }
 
 
+    // createMarker function to generate marker and display on map
     function createMarker(locName, displayName, lat, lon, relevance, locDetails) {
       var popup = "<h3>" + locName + "</h3>";
 
@@ -298,6 +343,7 @@
         popup += displayDetails;
       }
 
+      // Adjust the marker's size to reflect the entity's relevance value
       var markerSize = Math.round(relevance * 75);
 
       var markerIcon = L.divIcon({
@@ -306,20 +352,11 @@
 
       var marker = L.marker([lat, lon], { icon: markerIcon }).bindPopup(popup);
 
-      // Make the radius a factor of the zoom level
-      //var marker = L.marker([lat, lon]).bindPopup(popup);
-      /*
-      var marker = L.circle([lat, lon], {
-          color: false,
-          fillColor: '#ff0000',
-          fillOpacity: ((1 - minOpacity) * relevance) + minOpacity,
-          radius: 400000 * relevance
-      }).bindPopup(popup);
-      */
-
       locationsLayerGroup.addLayer(marker);
     }
 
+
+    // Add click listener to Zoom buttons displayed next to geoentities
     $('body').on('click', 'div.zoomBtn', function() {
       // parse lat, lon, and type from the button's data attributes
       var lat = $(this).data().lat;
@@ -328,7 +365,8 @@
 
       console.log("Geotype: " + geotype);
 
-      // Set zoom level based on type
+      // Set zoom level based on the entity's type, so the zoom "feels" natural
+      // and adjusts to fit each feature's relative size
       switch(geotype) {
         case "Country":
           var zoom = 4;
@@ -358,9 +396,10 @@
 
       console.log("Zooming to: " + lat + ", " + long + "; zoom level: " + zoom);
 
-      // set the view
+      // Set the map view
       map.setView([lat, long], zoom);
     });
+
 
     /////////////
     // ANALYZE //
@@ -374,26 +413,33 @@
       var urlInput = $('#urlToParse').val();
       console.log("Analyzing URL: " + urlInput);
 
-      // jQuery AJAX version
+      // Pass along URL input and get Watson data
+      // This hits endpoint defined in server.js that will execute the call to IBM Watson
       $.ajax({
         url: "/call_watson/?urlInput=" + urlInput,
         context: document.body,
         dataType: 'json',
         crossDomain: true,
         success: function(data){
-          // Set button text back to original
+          // Set button text back to original state
           $('#analyzeBtn').html("Call Watson!");
+
+          // Set map view back to original state
+          map.setView([0, 0], 1);
 
           //var parsed = $.parseJSON(data);
           var parsed = data;
 
+          // Display source text
           var sourceText = parsed.text;
           showSourceText(sourceText);
 
+          // Display concepts
           var allConcepts = parsed.concepts;
           var mainConcepts = _.filter(allConcepts, function(o) { return o.relevance > 0.5 });
           showConcepts(mainConcepts);
 
+          // Display entities
           var allEntities = parsed.entities;
           processEntities(allEntities);
         }

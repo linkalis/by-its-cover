@@ -43,6 +43,7 @@
 }
 
 .leaflet-div-icon {
-  background-color: #ff0000;
+  background-color: #900021;
   border-radius: 50%;
+  border-color: #ccc;
 }
