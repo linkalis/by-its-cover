@@ -21,7 +21,7 @@
       <div class="col-md-6 col-md-offset-3">
         <!-- <label for="url-text-box">URL to parse</label> -->
         <div class="input-group">
-          <span class="input-group-addon">http://</span>
+          <span class="input-group-addon">URL :</span>
           <input type="text" class="form-control" id="urlToParse" aria-describedby="url-text-box">
           <span class="input-group-btn">
             <button id="analyzeBtn" class="btn">Call Watson!</button>
@@ -32,18 +32,17 @@
     </div>
 
     <div class="row">
-      <div class="col-md-3 concepts-container">
-        <h2>Main concepts</h2>
+      <div class="col-md-2 concepts-container">
+        <h2>Main ideas</h2>
         <div id="concepts"></div>
       </div>
 
-      <div class="col-md-6 map-container">
-        <h2>Map</h2>
+      <div class="col-md-7 map-container">
         <div id="map"></div>
       </div>
 
       <div class="col-md-3 entities-container">
-        <h2>Entities</h2>
+        <h2>Who? What? Where?</h2>
         <div id="entities"></div>
       </div>
     </div>
@@ -60,16 +59,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.16.6/lodash.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.1/leaflet.js"></script>
 
-  <!--
-    <script type="text/javascript" src="bundle.js" charset="utf-8"></script>
-  -->
-
   <script>
 
     // Set up Leaflet map
     var map = L.map('map').setView([0, 0], 1);
-    var openStreetMap = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {minZoom: 1, maxZoom: 12, attribution: 'Map data (C) <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'});
 
+    // Add baselayer to map
+    var openStreetMap = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {minZoom: 1, maxZoom: 12, attribution: 'Map data (C) <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'});
     openStreetMap.addTo(map);
 
     // Initialize layerGroup to hold geoentities
@@ -121,6 +117,7 @@
         console.log(entities[i]);
         var name = entities[i].text;
         var type = entities[i].type;
+        var count = entities[i].count;
         var relevance = entities[i].relevance;
         var sentiment = entities[i].sentiment.type;
         var subType = undefined;
@@ -138,37 +135,32 @@
         // Show entities in list and on map, where applicable
         // If loc is available from Watson data, use that info to visualize
         if (loc != undefined) {
-          showEntity(name, type, relevance, sentiment, subType, website, loc[0], loc[1]);
+          showEntity(name, type, count, relevance, sentiment, subType, website, loc[0], loc[1]);
           createMarker(name, null, loc[0], loc[1], relevance, subType);
         } else if (type == "GeographicFeature" || type == "City" || type == "Country" || type == "StateOrCounty") {
           // If loc data isn't available, but it's a geoentity, then geocode
-          console.log("This outside callback function: ");
-          console.log(this);
-          console.log("Name outside callback function: " + name);
 
-          function processGeocoded(geocoded) {
-            var self = this;
-            console.log("Name inside callback function: " + name);
-            console.log("Text inside callback function with self is: " + self.name);
-            // Code that depends on 'result'
-            console.log("Successfully geocoded: " + name + "(" + geocoded.displayName + ") ; " + geocoded.lat + ", " + geocoded.lon);
-            showEntity(name, type, relevance, sentiment, subType, website, geocoded.lat, geocoded.lon);
-            createMarker(name, geocoded.displayName, geocoded.lat, geocoded.lon, relevance, subType);
-          }
+          (function(this_entity){
 
-          // Call geoCode function, passing in callback function from above
-          // http://stackoverflow.com/questions/14220321/how-do-i-return-the-response-from-an-asynchronous-call
-          geoCode(name, processGeocoded);
+            function processGeocoded(geocoded) {
+              console.log("Successfully geocoded: " + this_entity.text + "(" + geocoded.displayName + ") ; " + geocoded.lat + ", " + geocoded.lon);
+              showEntity(this_entity.text, this_entity.type, this_entity.count, this_entity.relevance, this_entity.sentiment.type, this_entity.subType, this_entity.website, geocoded.lat, geocoded.lon);
+              createMarker(this_entity.text, geocoded.displayName, geocoded.lat, geocoded.lon, this_entity.relevance, this_entity.subType);
+            }
+
+            // Call geoCode function, passing in callback function from above
+            // http://stackoverflow.com/questions/14220321/how-do-i-return-the-response-from-an-asynchronous-call
+            geoCode(name, processGeocoded);
+          })(entities[i]);
 
         } else {
-          showEntity(name, type, relevance, sentiment, subType, website, null, null);
+          showEntity(name, type, count, relevance, sentiment, subType, website, null, null);
         }
-
       }
     }
 
     // Show all entities in sidebar
-    function showEntity(name, type, relevance, sentiment, subType, website, lat, lon) {
+    function showEntity(name, type, count, relevance, sentiment, subType, website, lat, lon) {
 
       var subTypeDetails = "";
       var websiteDetails = "";
@@ -191,7 +183,7 @@
       }
 
       if (lat != null) {
-        geoButton = "<div class='zoomBtn btn btn-info' data-lat='" + lat + "' data-long='" + lon + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
+        geoButton = "<div class='zoomBtn btn btn-info' data-lat='" + lat + "' data-long='" + lon + "' data-geotype='" + type + "'>Zoom <i class='glyphicon glyphicon-screenshot'></i></div>";
       }
 
       switch (type){
@@ -248,12 +240,13 @@
                               typeIcon +
                               "<h3>" + name + "</h3>" +
                               "<p>" + type + "</p>" +
-                              "<p>Relevance: " + relevance + "</p>" +
+                              "<p>Times mentioned: " + count + "</p>" +
+                              "<p>Relevance score: " + relevance + "</p>" +
                               "<p>Sentiment: " + sentiment + "</p>" +
                               subTypeDetails +
                               websiteDetails +
-                              geoButton +
                               sentimentIcon +
+                              "<p>" + geoButton + "</p>" +
                               "</div></div>";
 
       $(entityDescription).appendTo("#entities");
@@ -305,26 +298,65 @@
         popup += displayDetails;
       }
 
-      var minOpacity = 0.5;
+      var markerSize = Math.round(relevance * 75);
 
+      var markerIcon = L.divIcon({
+        iconSize: new L.Point(markerSize, markerSize)
+      });
+
+      var marker = L.marker([lat, lon], { icon: markerIcon }).bindPopup(popup);
+
+      // Make the radius a factor of the zoom level
       //var marker = L.marker([lat, lon]).bindPopup(popup);
+      /*
       var marker = L.circle([lat, lon], {
           color: false,
           fillColor: '#ff0000',
           fillOpacity: ((1 - minOpacity) * relevance) + minOpacity,
           radius: 400000 * relevance
       }).bindPopup(popup);
+      */
 
       locationsLayerGroup.addLayer(marker);
     }
 
     $('body').on('click', 'div.zoomBtn', function() {
-      // parse lat and long from the button's data attributes
+      // parse lat, lon, and type from the button's data attributes
       var lat = $(this).data().lat;
       var long = $(this).data().long;
-      var zoom = 7;
+      var geotype = $(this).data().geotype;
 
-      console.log("Zooming map to: " + lat + ", " + long);
+      console.log("Geotype: " + geotype);
+
+      // Set zoom level based on type
+      switch(geotype) {
+        case "Country":
+          var zoom = 4;
+          break;
+        case "StateOrCounty":
+          var zoom = 6;
+          break;
+        case "GeographicFeature":
+          var zoom = 6;
+          break;
+        case "City":
+          var zoom = 8;
+          break;
+        case "Facility":
+          var zoom = 10;
+          break;
+        case "Organization":
+          var zoom = 10;
+          break;
+        case "Company":
+          var zoom = 10;
+          break;
+        default:
+          var zoom = 4;
+          break;
+      }
+
+      console.log("Zooming to: " + lat + ", " + long + "; zoom level: " + zoom);
 
       // set the view
       map.setView([lat, long], zoom);

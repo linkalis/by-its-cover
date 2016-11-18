@@ -7,8 +7,8 @@
 }
 
 #concepts {
- height: 500px;
- overflow-y: scroll;
+  height: 450px;
+  overflow-y: scroll;
 }
 
 .concepts-container {
@@ -20,7 +20,7 @@
 }
 
 #entities {
-  height: 500px;
+  height: 450px;
   overflow-y: scroll;
 }
 
@@ -28,6 +28,21 @@
   background-color: #87D5EB;
 }
 
+.entities-container > h2 {
+  font-size: 1.75em;
+}
+
 .entity-panel {
   background-color: #EBEBEB;
+}
+
+.scroll-icon {
+  position: absolute;
+  bottom: 5px;
+  right: 15px;
+}
+
+.leaflet-div-icon {
+  background-color: #ff0000;
+  border-radius: 50%;
 }
