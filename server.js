@@ -1,5 +1,4 @@
 var express = require('express');
-var expressBrowserify = require('express-browserify');
 var request = require('request');
 var watson = require('watson-developer-cloud');
 
